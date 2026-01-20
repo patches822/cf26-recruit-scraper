@@ -80,7 +80,7 @@ class Recruit:
         self.recruit_class = recruit_class
         self.hometown = hometown
         self.attributes = attributes
-        
+
     def to_row(self) -> list:
         """Converts recruit data into a row matching the ATTRIBUTE_HEADERS order."""
         # 1. Basic Info Columns
