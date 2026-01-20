@@ -123,7 +123,7 @@ class RecruitScraper:
         if self.save_mode == "SHEETS":
             self.sheet = self._connect_google_sheets()
 
-    def _startup_menu(self) -> Tuple[str, bool]:
+    def _startup_menu(self) -> Tuple[str, bool, bool]:
         """Consolidated menu to configure the session."""
         print("\n" + "═"*40)
         print("       COLLEGE FOOTBALL RECRUIT SCRAPER")
