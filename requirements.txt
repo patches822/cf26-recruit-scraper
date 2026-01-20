@@ -1,0 +1,15 @@
+# Image Processing & OCR
+opencv-python
+easyocr
+numpy
+
+# Screen Capture & Input
+mss
+keyboard
+
+# Google Sheets & API
+gspread
+oauth2client
+
+# Standard library helpers (usually included, but good for clarity)
+# re, csv, datetime, winsound

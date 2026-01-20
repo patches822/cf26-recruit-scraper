@@ -2,7 +2,6 @@ import csv
 import logging
 import os
 import re
-import sys
 from typing import Dict, Tuple
 
 import cv2
@@ -12,6 +11,7 @@ import keyboard
 import mss
 import mss.tools
 import numpy as np
+import winsound
 from oauth2client.service_account import ServiceAccountCredentials
 
 # --- CONFIGURATION ---
@@ -113,7 +113,10 @@ class RecruitScraper:
         self.monitor_num = monitor_num
         
         # 1. Run the Startup Menu
-        self.save_mode, self.debug_mode, self.keep_screenshots = self._startup_menu()
+        (self.save_mode, 
+         self.debug_mode, 
+         self.keep_screenshots, 
+         self.use_sounds) = self._startup_menu()
         
         # 2. Initialize Resources
         logger.info("Initializing OCR Reader (this may take a moment)...")
@@ -149,8 +152,14 @@ class RecruitScraper:
         ss_choice = input("    Choice: ").strip().lower()
         keep_screenshots = True if ss_choice == 'y' else False
 
+        # [4] Sound Alerts
+        print("\n[4] ENABLE AUDIBLE ALERTS (BEEPS)?")
+        print("    (y) Yes | (n) No")
+        sound_choice = input("    Choice: ").strip().lower()
+        use_sounds = True if sound_choice == 'y' else False
+
         print("\n" + "═"*40)
-        return save_mode, debug_mode, keep_screenshots
+        return save_mode, debug_mode, keep_screenshots, use_sounds
         
     def _connect_google_sheets(self):
         """Connects to Google Sheets API."""
@@ -200,6 +209,35 @@ class RecruitScraper:
             cv2.imshow(title, img)
             cv2.waitKey(0)  # 1ms delay to allow window to render without blocking
             cv2.destroyAllWindows()
+
+    def _validate_recruit_data(self, data: Recruit) -> bool:
+        """Validate none of the fields for the recruit are empty."""
+        missing_fields = []
+        for key, value in data.__dict__.items():
+            if key != "attributes" and (value == "Error" or value == ""):
+                missing_fields.append(key)
+
+        if len(missing_fields) > 0:
+            list_str = ", ".join(map(str, missing_fields))
+            logger.error(f"❌ Basic Info Validation Failed: Missing {list_str}")
+            return False
+        
+        if len(data.attributes) != 10:
+            logger.error(f"❌ Attributes Validation Failed: Found {len(data.attributes)}/10 attributes for {data.name}.")
+            return False
+        
+        return True
+
+    def _trigger_alert(self, success=True):
+        """Plays sound only if use_sounds is enabled; always logs to console."""
+        if success:
+            logger.info("✅ SCAN SUCCESSFUL")
+            if self.use_sounds:
+                winsound.Beep(1000, 200)
+        else:
+            logger.error("⚠️ SCAN FAILED: Data incomplete. Please re-scan.")
+            if self.use_sounds:
+                winsound.Beep(400, 600)
 
     def _crop_roi(self, img, roi_key: str):
         """Crops the image based on the ROI_CONFIG key."""
@@ -449,8 +487,16 @@ class RecruitScraper:
                 hometown=hometown, attributes=attributes
             )
 
+            # --- VALIDATE DATA ---
+            if not self._validate_recruit_data(recruit):
+                self._trigger_alert(success=False)
+                return
+
             # --- SAVE DATA ---
             self._save_recruit_data(recruit)
+
+            # Success Beep
+            self._trigger_alert(success=True)
 
             # --- OPTIONAL PERMANENT SCREENSHOT ---
             if self.keep_screenshots:

@@ -1,16 +1,17 @@
 # 🏈 CFB26 Recruit Scraper
 
-An automated data extraction tool for **College Football 25/26** that uses Computer Vision (OpenCV) and Optical Character Recognition (OCR) to scrape recruit profiles and instantly sync them to a Google Sheet.
+An automated Computer Vision (CV) tool designed to scrape recruit profiles in College Football 25/26 and sync them instantly to Google Sheets or a local CSV.
 
 ## 🌟 Features
 
+* **Session Configuration:** Interactive startup menu to toggle Debug Mode, Sounds, and Screenshot Archiving.
+* **Dual-Output Support:** Choose between real-time Google Sheets syncing or offline CSV logging.
+* **Audible Alerts:** High-pitched "Success" and low-pitched "Fail" beeps for eyes-free scouting.
 * **One-Key Scrape:** Press `S` while hovering over a recruit to instantly capture all data.
-* **Intelligent OCR:** Extracts Player Name, Position, Archetype, Height, Weight, and Hometown using `EasyOCR`.
+* **Intelligent OCR:** Extracts Player Name, Position, Archetype, Height, Weight, Class, and Hometown using `EasyOCR`.
 * **Computer Vision Gem Detection:** Uses HSV color masking to identify **Green Gems** and **Red Busts** that OCR can't read.
 * **Star Rating Counter:** A custom contour-detection algorithm that counts white stars (1-5) on the recruit's profile.
 * **Dynamic Attribute Mapping:** Automatically identifies and maps 50+ different attributes (Speed, Throw Power, etc.) based on the recruit's position and archetype.
-* **Auto-Normalization:** Fixes common OCR errors (e.g., converting "SHORTACCURACY" back to "Short Accuracy").
-* **Google Sheets Integration:** Real-time syncing to a centralized recruiting database.
 
 ## 🛠️ Tech Stack
 
@@ -21,36 +22,46 @@ An automated data extraction tool for **College Football 25/26** that uses Compu
 * **GSpread:** Google Sheets API integration.
 * **Keyboard:** Global hotkey management.
 
-## 🚀 Installation & Setup
+## 🚀 Getting Started
 
-1. **Clone the repo:**
+### 1. Installation
+
+Clone the repo and install the dependencies:
+
 ```bash
 git clone https://github.com/yourusername/CFB26-Recruit-Scraper.git
 cd CFB26-Recruit-Scraper
+pip install -r requirements.txt
 
 ```
 
-2. **Install dependencies:**
+### 2. Google Sheets Setup (Optional)
+
+If using Google Sheets mode:
+
+1. Place your `creds.json` in the root folder.
+2. Ensure your sheet is titled `CFB26_Recruits` or update the name in the script.
+
+### 3. Usage
+
+Run the script and follow the on-screen prompts to configure your session:
+
 ```bash
-pip install opencv-python easyocr gspread mss keyboard oauth2client numpy
+python recruit_scraper.py
 
 ```
 
-3. **Google Sheets API:**
-* Place your `creds.json` (Service Account Key) in the root directory.
-* Share your Google Sheet with the email found in your `creds.json`.
+* **Press 'S'** to scrape the recruit you are currently hovering over.
+* **Press 'ESC'** to save and exit.
 
-4. **Configure Monitor & ROIs:**
-* Open `recruit_scraper.py` and adjust the `MONITOR_NUMBER` and `ROI_CONFIG` coordinates to match your screen resolution.
+### 🗺️ How to Customize for Your Resolution
 
-## 📸 How it Works
+The `ROI_CONFIG` values are currently tuned for a specific windowed-mode resolution. To adjust for your setup:
 
-The script captures a specific region of the screen, converts the image from **BGRA to BGR** (to avoid the "Blue Gem" color swap issue), and runs several parallel processes:
-
-1. **Masking:** Filters for specific color ranges to find gems.
-2. **Contours:** Identifies shapes to count star ratings.
-3. **OCR:** Reads text and applies a normalization map to fix kerning/spacing issues.
-4. **Export:** Compiles a `Recruit` object and appends it as a new row in Google Sheets.
+1. Run the script once and press `S`.
+2. Open the generated `debug.png`.
+3. Use a tool like MS Paint or Photoshop to find the  pixel coordinates of the boxes you want to capture.
+4. Update the `(y, h, x, w)` tuples in the `ROI_CONFIG` dictionary.
 
 ## 🛠️ Troubleshooting & Common Fixes
 
@@ -91,15 +102,6 @@ reader = easyocr.Reader(['en'], gpu=False)
 
 * If the stars are "blooming" together into one white blob, **increase** the threshold value in `cv2.threshold(gray, 200, 255...)`.
 * If the stars are invisible, **decrease** it to `150`.
-
-## 🗺️ How to Customize for Your Resolution
-
-The `ROI_CONFIG` values are currently tuned for a specific windowed-mode resolution. To adjust for your setup:
-
-1. Run the script once and press `S`.
-2. Open the generated `debug.png`.
-3. Use a tool like MS Paint or Photoshop to find the  pixel coordinates of the boxes you want to capture.
-4. Update the `(y, h, x, w)` tuples in the `ROI_CONFIG` dictionary.
 
 ## 🚀 Future Features & Roadmap
 
