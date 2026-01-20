@@ -183,9 +183,12 @@ class RecruitScraper:
         archetype_data = self.extract_text_from_roi(img, "archetype")
         if archetype_data[0] == "Error":
             return "Error"
-        else:
-            # TODO: Gritty Possession Archetype is only being captured as "Possession"
+        elif len(archetype_data) == 2:
             return archetype_data[1]
+        else:
+            # TODO: Find a better solution for the issue where the Gritty Possession Archetype is only being captured as "Possession"
+            # Archetype Data: ['ARCHETYPE', 'Possession', 'Gritty']
+            return f"{archetype_data[2]} {archetype_data[1]}"
         
     def extract_recruit_class(self, img) -> str:
         """Extracts recruit's class."""
