@@ -4,6 +4,7 @@ import numpy as np
 import easyocr
 import logging
 import re
+import winsound
 from datetime import datetime
 
 # Local Imports
