@@ -107,3 +107,14 @@ The `ROI_CONFIG` values are currently tuned for a specific windowed-mode resolut
 
 * **Icon Recognition:** Using Template Matching to identify "Platinum," "Gold," "Silver," and "Bronze" ability tiers.
 * **Mental Traits:** Scoping the specific Mental icons (like "Road Warrior" or "Closer") to help predict how players perform in high-pressure situations.
+
+### 📊 Data Portability & Persistence
+
+* **CSV Fallback Mode:** Add the ability to save recruit data to a local `.csv` file. This allows for offline scouting and serves as a backup if the Google Sheets API quota is reached or if the internet is down.
+* **Database Integration:** Exploring SQLite support for local storage to allow for complex historical scouting queries.
+
+### 🛡️ Stability & Code Quality
+
+* **Automated Testing:** Implement a test suite using `pytest` to run the OCR and color detection logic against a library of "Golden Images" (known screenshots) to ensure code updates don't break detection accuracy.
+* **Advanced Error Handling:** Add comprehensive try-except blocks for network timeouts, API rate limits, and OCR "hallucinations" to ensure the script doesn't crash during a long scouting session.
+* **Validation Logging:** Create a `failsafe.log` that saves the raw OCR text of any failed scan for manual review later.
