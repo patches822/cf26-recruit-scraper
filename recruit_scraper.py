@@ -1,3 +1,4 @@
+import csv
 import logging
 import os
 import re
@@ -39,9 +40,12 @@ GLOBAL_OFFSETS = {
     "height": 1440
 }
 
+# --- BASIC INFO HEADERS ---
+BASIC_INFO_HEADERS = ["NAME", "POSITION", "ARCHETYPE", "STARS", "GEM", "HEIGHT", "WEIGHT", "CLASS", "HOMETOWN"]
+
 # --- ATTRIBUTE MAPPING ---
-# List of all possible columns in the Google Sheet (Must match Row 1)
-ALL_SHEET_HEADERS = [
+# List of all possible attribute columns in the Google Sheet (Must match Row 1)
+ATTRIBUTE_HEADERS = [
     "SPEED", "ACCELERATION", "AGILITY", "CHANGE OF DIRECTION", "STRENGTH", "AWARENESS", 
     "CARRYING", "BC VISION", "BREAK TACKLE", "TRUCKING", "STIFF ARM", "SPIN MOVE", 
     "JUKE MOVE", "CATCHING", "CATCH IN TRAFFIC", "SPECTACULAR CATCH", "SHORT ROUTE", 
@@ -78,7 +82,7 @@ class Recruit:
         self.attributes = attributes
 
     def to_row(self) -> list:
-        """Converts recruit data into a row matching the ALL_SHEET_HEADERS order."""
+        """Converts recruit data into a row matching the ATTRIBUTE_HEADERS order."""
         # 1. Basic Info Columns
         row = [
             self.name,
@@ -95,7 +99,7 @@ class Recruit:
         # 2. Dynamic Attribute Columns
         # We look through ALL possible headers. If the recruit has it, we add the value.
         # If not, we add an empty string "".
-        for header in ALL_SHEET_HEADERS:
+        for header in ATTRIBUTE_HEADERS:
             # We standardize keys: "Short Accuracy" (sheet) -> "SHORT ACCURACY" (dict)
             key = header.upper()
             val = self.attributes.get(key, "")
@@ -108,10 +112,28 @@ class RecruitScraper:
     def __init__(self, monitor_num: int):
         self.monitor_num = monitor_num
         self.debug_mode = False  # Set False to stop showing popup windows
+        self.save_mode = self._prompt_save_mode()
         
         # Initialize Resources
         self.reader = easyocr.Reader(['en'], gpu=True) # Set gpu=False if you don't have NVIDIA
-        self.sheet = self._connect_google_sheets()
+        self.sheet = None
+        if self.save_mode == "SHEETS":
+            self.sheet = self._connect_google_sheets()
+
+    def _prompt_save_mode(self) -> str:
+        """Asks the user how they want to save data at startup."""
+        print("\n" + "="*30)
+        print("   CFB RECRUIT SCRAPER")
+        print("="*30)
+        print("Select Save Mode:")
+        print("1. Google Sheets (Requires internet & creds.json)")
+        print("2. Local CSV File")
+        
+        while True:
+            choice = input("\nEnter 1 or 2: ").strip()
+            if choice == '1': return "SHEETS"
+            if choice == '2': return "CSV"
+            print("Invalid choice. Please enter 1 or 2.")
         
     def _connect_google_sheets(self):
         """Connects to Google Sheets API."""
@@ -123,8 +145,37 @@ class RecruitScraper:
             logger.info("Connected to Google Sheets successfully.")
             return sheet
         except Exception as e:
-            logger.error(f"Failed to connect to Google Sheets: {e}")
-            sys.exit(1)
+            logger.error(f"Google Sheets connection failed: {e}")
+            logger.info("Defaulting to CSV mode for this session.")
+            return None
+        
+    def _save_to_csv(self, row_data):
+        """Appends a recruit row to a local CSV file."""
+        file_name = "recruits_scraped.csv"
+        file_exists = os.path.isfile(file_name)
+        
+        with open(file_name, mode='a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                # Header row: Basic Info + Attribute Headers
+                headers = BASIC_INFO_HEADERS + ATTRIBUTE_HEADERS
+                writer.writerow(headers)
+            writer.writerow(row_data)
+
+    def _save_recruit_data(self, recruit: Recruit):
+        """Main entry point for saving data based on selected mode."""
+        row = recruit.to_row()
+        
+        if self.save_mode == "SHEETS" and self.sheet:
+            try:
+                self.sheet.append_row(row)
+                logger.info(f"Saved to Google Sheets: {recruit.name}")
+            except Exception as e:
+                logger.error(f"Error saving to Sheets: {e}. Attempting CSV backup.")
+                self._save_to_csv(row)
+        else:
+            self._save_to_csv(row)
+            logger.info(f"Saved to CSV: {recruit.name}")
 
     def _show_debug(self, title: str, img):
         """Helper to show debug windows if debug mode is on."""
@@ -271,7 +322,7 @@ class RecruitScraper:
         # --- 1. CREATE NORMALIZATION MAP ---
         # This creates a dictionary like: {'SHORTACCURACY': 'SHORT ACCURACY', 'RUNBLOCK': 'RUN BLOCK'}
         # It allows us to match OCR text even if spaces are missing.
-        header_map = {h.replace(" ", "").upper(): h for h in ALL_SHEET_HEADERS}   
+        header_map = {h.replace(" ", "").upper(): h for h in ATTRIBUTE_HEADERS}   
 
         # --- 2. PROCESS LABELS & VALUES ---
         clean_labels = []
@@ -357,10 +408,9 @@ class RecruitScraper:
             mss.tools.to_png(screenshot.rgb, screenshot.size, output="debug.png")
             
             # Convert to OpenCV format (BGR)
-            img = np.array(screenshot)
-            img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+            img_bgr = cv2.cvtColor(np.array(screenshot), cv2.COLOR_BGRA2BGR)
             
-            logger.info("Processing screenshot...")
+            logger.info("Scanned recruit. Extracting data...")
 
             # --- EXTRACT DATA ---
             name = self.extract_name(img_bgr)
@@ -380,9 +430,8 @@ class RecruitScraper:
                 height=height, weight=weight, recruit_class=recruit_class, 
                 hometown=hometown, attributes=attributes
             )
-            
-            self.sheet.append_row(recruit.to_row())
-            logger.info(f"SUCCESS: Saved {name} ({position}) - Gem: {gem_status}")
+
+            self._save_recruit_data(recruit)
 
             # Save visual record
             os.makedirs(f"screenshots/{position}", exist_ok=True)
@@ -390,8 +439,8 @@ class RecruitScraper:
             mss.tools.to_png(screenshot.rgb, screenshot.size, output=f"screenshots/{position}/{safe_name}.png")
 
     def run(self):
-        logger.info(f"Scraper Active on Monitor {self.monitor_num}.")
-        logger.info("Hover over a recruit and press 'S' to scrape. Press 'ESC' to quit.")
+        logger.info(f"SCRAPER READY (Mode: {self.save_mode})")
+        logger.info("Press 'S' to Scrape, 'ESC' to Quit.")
         
         keyboard.add_hotkey('s', self.process_recruit)
         keyboard.wait('esc')

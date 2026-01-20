@@ -110,7 +110,6 @@ The `ROI_CONFIG` values are currently tuned for a specific windowed-mode resolut
 
 ### 📊 Data Portability & Persistence
 
-* **CSV Fallback Mode:** Add the ability to save recruit data to a local `.csv` file. This allows for offline scouting and serves as a backup if the Google Sheets API quota is reached or if the internet is down.
 * **Database Integration:** Exploring SQLite support for local storage to allow for complex historical scouting queries.
 
 ### 🛡️ Stability & Code Quality
