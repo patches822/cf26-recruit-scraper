@@ -459,18 +459,13 @@ class RecruitScraper:
                 "height": GLOBAL_OFFSETS["height"],
             }
 
-            img_bgr = cv2.imread("screenshots/TE/CHADLOVE.png")
-            if img_bgr is None:
-                print(f"Could not find image. Make sure it's in the same folder!")
-                return
+            screenshot = sct.grab(capture_region)
 
-            # screenshot = sct.grab(capture_region)
-
-            # # Always save debug.png for the immediate scan verification
-            # mss.tools.to_png(screenshot.rgb, screenshot.size, output="debug.png")
+            # Always save debug.png for the immediate scan verification
+            mss.tools.to_png(screenshot.rgb, screenshot.size, output="debug.png")
             
-            # # Convert to OpenCV format (BGR)
-            # img_bgr = cv2.cvtColor(np.array(screenshot), cv2.COLOR_BGRA2BGR)
+            # Convert to OpenCV format (BGR)
+            img_bgr = cv2.cvtColor(np.array(screenshot), cv2.COLOR_BGRA2BGR)
             
             logger.info("Scanned recruit. Extracting data...")
 
