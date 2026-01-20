@@ -111,29 +111,46 @@ class Recruit:
 class RecruitScraper:
     def __init__(self, monitor_num: int):
         self.monitor_num = monitor_num
-        self.debug_mode = False  # Set False to stop showing popup windows
-        self.save_mode = self._prompt_save_mode()
         
-        # Initialize Resources
+        # 1. Run the Startup Menu
+        self.save_mode, self.debug_mode, self.keep_screenshots = self._startup_menu()
+        
+        # 2. Initialize Resources
+        logger.info("Initializing OCR Reader (this may take a moment)...")
         self.reader = easyocr.Reader(['en'], gpu=True) # Set gpu=False if you don't have NVIDIA
+
         self.sheet = None
         if self.save_mode == "SHEETS":
             self.sheet = self._connect_google_sheets()
 
-    def _prompt_save_mode(self) -> str:
-        """Asks the user how they want to save data at startup."""
-        print("\n" + "="*30)
-        print("   CFB RECRUIT SCRAPER")
-        print("="*30)
-        print("Select Save Mode:")
-        print("1. Google Sheets (Requires internet & creds.json)")
-        print("2. Local CSV File")
+    def _startup_menu(self) -> Tuple[str, bool, bool]:
+        """Consolidated menu to configure the session."""
+        print("\n" + "═"*40)
+        print("       COLLEGE FOOTBALL RECRUIT SCRAPER")
+        print("═"*40)
         
-        while True:
-            choice = input("\nEnter 1 or 2: ").strip()
-            if choice == '1': return "SHEETS"
-            if choice == '2': return "CSV"
-            print("Invalid choice. Please enter 1 or 2.")
+        # [1] Save Mode
+        print("\n[1] SELECT SAVE MODE:")
+        print("    (1) Google Sheets")
+        print("    (2) Local CSV File")
+        save_choice = input("    Choice: ").strip()
+        save_mode = "SHEETS" if save_choice == '1' else "CSV"
+
+        # [2] Debug Mode
+        print("\n[2] ENABLE DEBUG WINDOWS?")
+        print("    (y) Yes | (n) No")
+        debug_choice = input("    Choice: ").strip().lower()
+        debug_mode = True if debug_choice == 'y' else False
+
+        # [3] Screenshot Record Keeping
+        print("\n[3] SAVE SCREENSHOTS FOR EVERY RECRUIT?")
+        print("    (y) Yes - Save to /screenshots folder")
+        print("    (n) No  - Data only (Saves space)")
+        ss_choice = input("    Choice: ").strip().lower()
+        keep_screenshots = True if ss_choice == 'y' else False
+
+        print("\n" + "═"*40)
+        return save_mode, debug_mode, keep_screenshots
         
     def _connect_google_sheets(self):
         """Connects to Google Sheets API."""
@@ -178,7 +195,7 @@ class RecruitScraper:
             logger.info(f"Saved to CSV: {recruit.name}")
 
     def _show_debug(self, title: str, img):
-        """Helper to show debug windows if debug mode is on."""
+        """Only shows windows if the user opted-in at startup."""
         if self.debug_mode:
             cv2.imshow(title, img)
             cv2.waitKey(0)  # 1ms delay to allow window to render without blocking
@@ -405,6 +422,8 @@ class RecruitScraper:
             }
 
             screenshot = sct.grab(capture_region)
+
+            # Always save debug.png for the immediate scan verification
             mss.tools.to_png(screenshot.rgb, screenshot.size, output="debug.png")
             
             # Convert to OpenCV format (BGR)
@@ -423,7 +442,6 @@ class RecruitScraper:
             star_rating = self.extract_star_rating(img_bgr)
             attributes = self.extract_attributes(img_bgr)
 
-            # --- SAVE DATA ---
             recruit = Recruit(
                 name=name, position=position, archetype=archetype, 
                 star_rating=star_rating, gem_status=gem_status, 
@@ -431,20 +449,36 @@ class RecruitScraper:
                 hometown=hometown, attributes=attributes
             )
 
+            # --- SAVE DATA ---
             self._save_recruit_data(recruit)
 
-            # Save visual record
-            os.makedirs(f"screenshots/{position}", exist_ok=True)
-            safe_name = re.sub(r'\W+', '', name) # Remove weird chars for filename
-            mss.tools.to_png(screenshot.rgb, screenshot.size, output=f"screenshots/{position}/{safe_name}.png")
+            # --- OPTIONAL PERMANENT SCREENSHOT ---
+            if self.keep_screenshots:
+                os.makedirs(f"screenshots/{position}", exist_ok=True)
+                # Clean name for filename compatibility
+                safe_name = re.sub(r'\W+', '', name) if name else "Unknown"
+                filename = f"screenshots/{position}/{safe_name}.png"
+                mss.tools.to_png(screenshot.rgb, screenshot.size, output=filename)
+                logger.info(f"Screenshot saved: {filename}")
 
     def run(self):
-        logger.info(f"SCRAPER READY (Mode: {self.save_mode})")
-        logger.info("Press 'S' to Scrape, 'ESC' to Quit.")
+        """Starts the main listener loop."""
+        mode_str = f"SAVE: {self.save_mode} | DEBUG: {'ON' if self.debug_mode else 'OFF'}"
         
+        print(f"\n🚀 SCRAPER ACTIVE")
+        print(f"   Settings: {mode_str}")
+        print(f"   Monitor:  {self.monitor_num}")
+        print("-" * 40)
+        print("👉 Press 'S' to scrape the current recruit.")
+        print("👉 Press 'ESC' to exit the program.")
+        print("-" * 40 + "\n")
+
         keyboard.add_hotkey('s', self.process_recruit)
         keyboard.wait('esc')
-        cv2.destroyAllWindows()
+        
+        if self.debug_mode:
+            cv2.destroyAllWindows()
+        logger.info("Scraper shut down safely.")
 
 
 if __name__ == "__main__":
