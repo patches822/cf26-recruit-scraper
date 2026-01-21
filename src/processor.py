@@ -59,13 +59,3 @@ def detect_gem_status(roi_img: np.ndarray, debug_mode=False) -> str:
         return "BUST"
         
     return "NORMAL"
-
-def preprocess_for_ocr(img: np.ndarray) -> np.ndarray:
-    """
-    Applies standard cleaning (grayscale + thresholding) 
-    to improve EasyOCR accuracy on text fields.
-    """
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # Binary threshold helps separate white text from dark backgrounds
-    _, processed = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
-    return processed

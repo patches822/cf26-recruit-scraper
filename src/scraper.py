@@ -3,6 +3,8 @@ import mss
 import numpy as np
 import easyocr
 import logging
+import os
+import shutil
 import re
 import winsound
 from datetime import datetime
@@ -47,6 +49,14 @@ class RecruitScraper:
         d = re.findall(r'\d+', value)
         return d[0] if d else ""
 
+    def _save_recruit_screenshot(self, screenshot, name, position):
+        """Saves a screenshot with the recruit's name and timestamp."""
+        os.makedirs(f"screenshots/{position}", exist_ok=True)
+        # Clean name for filename compatibility
+        safe_name = re.sub(r'\W+', '', name) if name else "Unknown"
+        filename = f"screenshots/{position}/{safe_name}.png"
+        shutil.copy("debug.png", filename)
+
     def _trigger_alert(self, success=True):
         """Plays sound only if use_sounds is enabled; always logs to console."""
         if success:
@@ -62,9 +72,6 @@ class RecruitScraper:
         """Helper to crop and OCR a specific ROI from config."""
         y, h, x, w = ROI_CONFIG[field_name]
         roi = img[y:y+h, x:x+w]
-        
-        # Pre-process image for better OCR
-        # processed_roi = processor.preprocess_for_ocr(roi)
 
         if self.debug_mode:
             cv2.imshow(f"Debug: {field_name}", roi)
@@ -108,7 +115,7 @@ class RecruitScraper:
         
     def extract_recruit_class(self, img) -> str:
         """Extracts recruit's class."""
-        recruit_class_data = self.extract_text_from_roi(img, "recruit_class")
+        recruit_class_data = self.extract_text(img, "recruit_class")
         if recruit_class_data[0] == "Error" or len(recruit_class_data) < 2:
             return "Error"
         elif len(recruit_class_data) == 2:
@@ -118,7 +125,7 @@ class RecruitScraper:
 
     def extract_hometown(self, img) -> str:
         """Extracts recruit's hometown."""
-        hometown_data = self.extract_text_from_roi(img, "hometown")
+        hometown_data = self.extract_text(img, "hometown")
 
         if hometown_data[0] == "Error" or len(hometown_data) < 2:
             return "Error"
@@ -129,7 +136,7 @@ class RecruitScraper:
 
     def extract_height_weight(self, img) -> tuple[str, str]:
         """Extracts recruit's height and weight."""
-        height_weight_data = self.extract_text_from_roi(img, "height_weight")
+        height_weight_data = self.extract_text(img, "height_weight")
 
         if height_weight_data[0] == "Error" or len(height_weight_data) < 2:
             return "Error", "Error"
@@ -206,11 +213,11 @@ class RecruitScraper:
         attributes = self.extract_attributes(img)
         
         # 2. Extract Specialized Data via Processor
-        x, y, w, h = ROI_CONFIG["star_rating"]
+        y, h, x, w = ROI_CONFIG["star_rating"]
         star_roi = img[y:y+h, x:x+w]
         star_rating = processor.get_star_rating(star_roi, debug_mode=self.debug_mode)
         
-        x, y, w, h = ROI_CONFIG["gem_icon"]
+        y, h, x, w = ROI_CONFIG["gem_icon"]
         gem_roi = img[y:y+h, x:x+w]
         gem_status = processor.detect_gem_status(gem_roi, debug_mode=self.debug_mode)
 
@@ -225,6 +232,8 @@ class RecruitScraper:
         # 4. Validation & Save
         if recruit.is_valid():
             self.output.save(recruit)
+            if self.keep_screenshots:
+                self._save_recruit_screenshot(img, name, position)
             logger.info(f"Successfully saved {name}")
             self._trigger_alert(success=True)
         else:
