@@ -173,13 +173,12 @@ class RecruitScraper:
 
         for item in attribute_data:
             # Check if it's a Value (contains digits)
-            if any(c.isdigit() for c in item):
+            if all(c.isdigit() for c in item):
                 val = self._clean_value(item)
                 if len(val) == 2: # filter out noise, keep 2-digit stats
                     clean_values.append(val)
-            
-            # Check if it's a Label (All caps, no digits)
-            elif item.isupper() and not item.isdigit() and len(item) > 2:
+            else:
+                # Item is a Label
                 # STRIP SPACES from the OCR result to match our map keys
                 ocr_key = item.replace(" ", "").upper()
                 
