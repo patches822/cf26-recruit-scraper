@@ -29,8 +29,8 @@ An automated Computer Vision (CV) tool designed to scrape recruit profiles in Co
 Clone the repo and install the dependencies:
 
 ```bash
-git clone https://github.com/yourusername/CFB26-Recruit-Scraper.git
-cd CFB26-Recruit-Scraper
+git clone https://github.com/patches822/cf26-recruit-scraper.git
+cd cf26-recruit-scraper
 pip install -r requirements.txt
 
 ```
