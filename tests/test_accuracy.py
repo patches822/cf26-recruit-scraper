@@ -1,9 +1,21 @@
+import sys
 import os
+
+# Get the absolute path of the current script's directory (tests/)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Get the path of the project root (one level up)
+project_root = os.path.dirname(current_dir)
+
+# Add the project root to the Python path
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import cv2
 import logging
 import json
 from datetime import datetime
-from recruit_scraper import RecruitScraper
+from src.scraper import RecruitScraper
 
 # Setup logging to be less noisy during tests
 logging.basicConfig(level=logging.ERROR)
@@ -25,7 +37,7 @@ def export_results_to_json(data, total_accuracy):
 
 def run_batch_test(base_folder="screenshots"):
     # Initialize scraper in dummy mode
-    scraper = RecruitScraper(monitor_num=1)
+    scraper = RecruitScraper()
     scraper.debug_mode = False
     scraper.use_sounds = False
     
@@ -54,11 +66,16 @@ def run_batch_test(base_folder="screenshots"):
 
                 # Run Scraper Logic
                 name = scraper.extract_name(img_bgr)
-                attrs = scraper.extract_attributes(img_bgr)
-                attr_count = len(attrs)
+                position = scraper.extract_position(img_bgr)
+                archetype = scraper.extract_archetype(img_bgr)
+                recruit_class = scraper.extract_recruit_class(img_bgr)
+                hometown = scraper.extract_hometown(img_bgr)
+                height, weight = scraper.extract_height_weight(img_bgr)
+                attributes = scraper.extract_attributes(img_bgr)
+                attr_count = len(attributes)
 
                 # Validation
-                is_valid = (len(name) > 0 and attr_count == 10)
+                is_valid = (len(name) > 0 and len(position) > 0 and len(archetype) > 0 and len(recruit_class) > 0 and len(hometown) > 0  and len(height) > 0 and len(weight) > 0 and attr_count == 10)
                 status = "✅ PASS" if is_valid else "❌ FAIL"
                 
                 if is_valid: results["pass"] += 1
@@ -70,6 +87,13 @@ def run_batch_test(base_folder="screenshots"):
                     "filename": filename,
                     "parent_folder": os.path.basename(root),
                     "captured_name": name,
+                    "captured_position": position,
+                    "captured_archetype": archetype,
+                    "captured_recruit_class": recruit_class,
+                    "captured_hometown": hometown,
+                    "captured_height": height,
+                    "captured_weight": weight,
+                    "captured_attributes": attributes,
                     "attribute_count": attr_count,
                     "status": "PASS" if is_valid else "FAIL"
                 })

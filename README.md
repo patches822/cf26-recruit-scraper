@@ -24,7 +24,13 @@ An automated Computer Vision (CV) tool designed to scrape recruit profiles in Co
 
 ## 🚀 Getting Started
 
-### 1. Installation
+### 1. Prerequisites
+
+* **Python 3.8+**
+* A Google Cloud Project (if using Google Sheets mode) with a `creds.json` file.
+* A Windows environment (required for `winsound` and `keyboard` hooks).
+
+### 2. Installation
 
 Clone the repo and install the dependencies:
 
@@ -35,33 +41,57 @@ pip install -r requirements.txt
 
 ```
 
-### 2. Google Sheets Setup (Optional)
+### 3. Google Sheets Setup (Optional)
 
 If using Google Sheets mode:
 
 1. Place your `creds.json` in the root folder.
 2. Ensure your sheet is titled `CFB26_Recruits` or update the name in the script.
 
-### 3. Usage
+### 4. Project Configuration
 
-Run the script and follow the on-screen prompts to configure your session:
+Before running, ensure your `config.py` matches your display settings:
+
+1. Open `config.py`.
+2. Update `MONITOR_NUMBER` to the screen where the game is running.
+3. If you aren't playing at 1440p, you may need to adjust the `GLOBAL_OFFSETS`.
+
+### 5. Running the Scraper
+
+The project is now modular. Always run the script from the **root directory**:
+
+**To start a live scouting session:**
 
 ```bash
-python recruit_scraper.py
+python main.py
 
 ```
 
-* **Press 'S'** to scrape the recruit you are currently hovering over.
-* **Press 'ESC'** to save and exit.
+* Follow the on-screen menu to toggle Google Sheets, Debug Mode, and Sound.
+* **Hotkey:** Press `S` while hovering over a recruit to scrape.
+* **Exit:** Press `ESC` to stop the listener and save data.
 
-### 🗺️ How to Customize for Your Resolution
+**To run an accuracy test on saved screenshots:**
 
-The `ROI_CONFIG` values are currently tuned for a specific windowed-mode resolution. To adjust for your setup:
+```bash
+python tests/test_accuracy.py
 
-1. Run the script once and press `S`.
-2. Open the generated `debug.png`.
-3. Use a tool like MS Paint or Photoshop to find the  pixel coordinates of the boxes you want to capture.
-4. Update the `(y, h, x, w)` tuples in the `ROI_CONFIG` dictionary.
+```
+
+* This will recursively scan the `/screenshots` folder and generate a JSON report in `/test_reports`.
+
+### 📂 Directory Overview for Developers
+
+If you are modifying the code, here is where to find what you need:
+
+* `/src/processor.py`: Image processing and CV logic (Stars, Gems).
+* `/src/scraper.py`: The core OCR orchestration.
+* `/src/output_manager.py`: Logic for saving to CSV or Google Sheets.
+* `/src/models.py`: The `Recruit` data structure.
+
+### 💡 Pro-Tip for First-Time Setup
+
+If you are unsure if your `GLOBAL_OFFSETS` are correct, run `main.py` and enable **Debug Mode**. When you press `S`, the script will open windows showing exactly what it "sees." If the windows are empty or showing the wrong part of the screen, adjust the `top` and `left` values in `config.py`.
 
 ## 🛠️ Troubleshooting & Common Fixes
 
