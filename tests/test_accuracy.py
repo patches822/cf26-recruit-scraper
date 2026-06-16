@@ -47,8 +47,8 @@ def run_batch_test(base_folder="screenshots"):
     valid_extensions = ('.png', '.jpg', '.jpeg', '.webp')
 
     print(f"\n🧪 Recursive Accuracy Test: Searching in /{base_folder}...")
-    print(f"{'Folder/Filename':<40} | {'Name':<20} | {'Attrs':<6} | {'Stars/Gem':<12} | {'Status'}")
-    print("-" * 115)
+    print(f"{'Folder/Filename':<40} | {'Name':<20} | {'Attrs':<6} | {'Stars/Gem':<12} | {'Dev Trait':<10} | {'Status'}")
+    print("-" * 130)
 
     # os.walk travels through every subfolder
     for root, dirs, files in os.walk(base_folder):
@@ -112,16 +112,16 @@ def run_batch_test(base_folder="screenshots"):
 
                 # Print scannable table row
                 display_path = (rel_path[:37] + '..') if len(rel_path) > 40 else rel_path
-                print(f"{display_path:<40} | {name[:20]:<20} | {attr_count:<6} | ⭐ {star_rating} | {gem_status:<6} | {status}")
+                print(f"{display_path:<40} | {name[:20]:<20} | {attr_count:<6} | ⭐ {star_rating} | {gem_status:<6} | {dev_trait or '?':<10} | {status}")
 
     # --- Summary and Export ---
     total = results["pass"] + results["fail"]
     accuracy = (results["pass"] / total) * 100 if total > 0 else 0
     
-    print("-" * 115)
+    print("-" * 130)
     print(f"SUMMARY: {results['pass']} Passed | {results['fail']} Failed")
     print(f"OVERALL ACCURACY: {accuracy:.1f}%")
-    print("-" * 115 + "\n")
+    print("-" * 130 + "\n")
 
     if total > 0:
         export_results_to_json(full_data_log, accuracy)
