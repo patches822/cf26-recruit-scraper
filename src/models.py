@@ -1,5 +1,5 @@
 import logging
-from config import ATTRIBUTE_HEADERS
+from config import ATTRIBUTE_HEADERS, POSITION_ATTRIBUTE_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,9 @@ class Recruit:
             logger.error(f"❌ Basic Info Validation Failed: Missing {list_str}")
             return False
         
-        if len(self.attributes) != 10:
-            logger.error(f"❌ Attributes Validation Failed: Found {len(self.attributes)}/10 attributes for {self.name}.")
+        expected = POSITION_ATTRIBUTE_COUNT.get(self.position, 10)
+        if len(self.attributes) != expected:
+            logger.error(f"❌ Attributes Validation Failed: Found {len(self.attributes)}/{expected} attributes for {self.name}.")
             return False
         
         return True

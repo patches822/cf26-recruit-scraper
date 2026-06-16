@@ -58,12 +58,10 @@ def main():
     # Initialize the Scraper with selected settings
     scraper = RecruitScraper(
         save_mode=settings["save_mode"],
+        debug_mode=settings["debug_mode"],
         use_sounds=settings["use_sounds"],
         keep_screenshots=settings["keep_screenshots"]
     )
-    
-    # Set the debug toggle directly on the scraper instance
-    scraper.debug_mode = settings["debug_mode"]
 
     print(f"\n🚀 SCRAPER ACTIVE")
     print(f"   Mode:    {settings['save_mode']}")

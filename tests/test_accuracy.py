@@ -38,7 +38,6 @@ def export_results_to_json(data, total_accuracy):
 def run_batch_test(base_folder="screenshots"):
     # Initialize scraper in dummy mode
     scraper = RecruitScraper()
-    scraper.debug_mode = False
     scraper.use_sounds = False
     
     full_data_log = []
@@ -48,8 +47,8 @@ def run_batch_test(base_folder="screenshots"):
     valid_extensions = ('.png', '.jpg', '.jpeg', '.webp')
 
     print(f"\n🧪 Recursive Accuracy Test: Searching in /{base_folder}...")
-    print(f"{'Folder/Filename':<40} | {'Name':<20} | {'Attrs':<6} | {'Status'}")
-    print("-" * 100)
+    print(f"{'Folder/Filename':<40} | {'Name':<20} | {'Attrs':<6} | {'Stars/Gem':<12} | {'Status'}")
+    print("-" * 115)
 
     # os.walk travels through every subfolder
     for root, dirs, files in os.walk(base_folder):
@@ -73,11 +72,20 @@ def run_batch_test(base_folder="screenshots"):
                 height, weight = scraper.extract_height_weight(img_bgr)
                 attributes = scraper.extract_attributes(img_bgr)
                 attr_count = len(attributes)
+                star_rating = scraper.extract_star_rating(img_bgr)
+                gem_status = scraper.extract_gem_status(img_bgr)
 
                 # Validation
-                is_valid = (len(name) > 0 and len(position) > 0 and len(archetype) > 0 and len(recruit_class) > 0 and len(hometown) > 0  and len(height) > 0 and len(weight) > 0 and attr_count == 10)
+                # gem_status always returns a valid string, so it's reported but not a fail condition
+                is_valid = (
+                    len(name) > 0 and len(position) > 0 and len(archetype) > 0
+                    and len(recruit_class) > 0 and len(hometown) > 0
+                    and len(height) > 0 and len(weight) > 0
+                    and attr_count == 10
+                    and 1 <= star_rating <= 5
+                )
                 status = "✅ PASS" if is_valid else "❌ FAIL"
-                
+
                 if is_valid: results["pass"] += 1
                 else: results["fail"] += 1
 
@@ -95,22 +103,23 @@ def run_batch_test(base_folder="screenshots"):
                     "captured_weight": weight,
                     "captured_attributes": attributes,
                     "attribute_count": attr_count,
+                    "captured_stars": star_rating,
+                    "captured_gem_status": gem_status,
                     "status": "PASS" if is_valid else "FAIL"
                 })
 
                 # Print scannable table row
-                # Truncate path if it's too long for the console
                 display_path = (rel_path[:37] + '..') if len(rel_path) > 40 else rel_path
-                print(f"{display_path:<40} | {name[:20]:<20} | {attr_count:<6} | {status}")
+                print(f"{display_path:<40} | {name[:20]:<20} | {attr_count:<6} | ⭐{star_rating} {gem_status:<6} | {status}")
 
     # --- Summary and Export ---
     total = results["pass"] + results["fail"]
     accuracy = (results["pass"] / total) * 100 if total > 0 else 0
     
-    print("-" * 100)
+    print("-" * 115)
     print(f"SUMMARY: {results['pass']} Passed | {results['fail']} Failed")
     print(f"OVERALL ACCURACY: {accuracy:.1f}%")
-    print("-" * 100 + "\n")
+    print("-" * 115 + "\n")
 
     if total > 0:
         export_results_to_json(full_data_log, accuracy)
