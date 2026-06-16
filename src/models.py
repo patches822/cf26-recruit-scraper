@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 class Recruit:
     """Data class to hold recruit information."""
-    def __init__(self, name, position, archetype, star_rating, gem_status, height, weight, recruit_class, hometown, attributes):
+    def __init__(self, name, position, archetype, star_rating, gem_status, height, weight, recruit_class, hometown, attributes, dev_trait=""):
         self.name = name
         self.position = position
         self.archetype = archetype
@@ -16,12 +16,13 @@ class Recruit:
         self.recruit_class = recruit_class
         self.hometown = hometown
         self.attributes = attributes
+        self.dev_trait = dev_trait
 
     def is_valid(self) -> bool:
         """Validate none of the fields for the recruit are empty."""
         missing_fields = []
         for key, value in self.__dict__.items():
-            if key != "attributes" and (value == "Error" or value == ""):
+            if key not in ("attributes", "dev_trait") and (value == "Error" or value == ""):
                 missing_fields.append(key)
 
         if len(missing_fields) > 0:
@@ -48,7 +49,8 @@ class Recruit:
             self.height,
             self.weight,
             self.recruit_class,
-            self.hometown
+            self.hometown,
+            self.dev_trait,
         ]
 
         # 2. Dynamic Attribute Columns

@@ -249,6 +249,19 @@ class RecruitScraper:
         gem_roi = img[y:y+h, x:x+w]
         return processor.detect_gem_status(gem_roi, debug_mode=self.debug_mode)
 
+    _DEV_TRAIT_MAP = {"normal": "Normal", "impact": "Impact", "star": "Star", "elite": "Elite"}
+
+    def extract_dev_trait(self, img) -> str:
+        """Returns the Development Trait if scouted, or '' if the ? placeholder is shown."""
+        dev_trait_data = self.extract_text(img, "dev_trait")
+        if dev_trait_data[0] == "Error":
+            return ""
+        for token in dev_trait_data:
+            trait = self._DEV_TRAIT_MAP.get(token.lower())
+            if trait:
+                return trait
+        return ""
+
     def process_current_recruit(self):
         """The main execution logic for a single 'S' key press."""
         img = self._capture_screen()
@@ -265,13 +278,14 @@ class RecruitScraper:
         # 2. Extract Specialized Data via Processor
         star_rating = self.extract_star_rating(img)
         gem_status = self.extract_gem_status(img)
+        dev_trait = self.extract_dev_trait(img)
 
         # 3. Create Model
         recruit = Recruit(
-                name=name, position=position, archetype=archetype, 
-                star_rating=star_rating, gem_status=gem_status, 
-                height=height, weight=weight, recruit_class=recruit_class, 
-                hometown=hometown, attributes=attributes
+                name=name, position=position, archetype=archetype,
+                star_rating=star_rating, gem_status=gem_status,
+                height=height, weight=weight, recruit_class=recruit_class,
+                hometown=hometown, attributes=attributes, dev_trait=dev_trait
             )
 
         # 4. Validation & Save

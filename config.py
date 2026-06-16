@@ -29,11 +29,12 @@ ROI_CONFIG = {
     "position":      (15, 120, 1400, 200),
     "name":          (15, 160, 590, 805),
     "star_rating":   (175, 50, 615, 240),
-    "basic_info":    (15, 240, 590, 1770)
+    "basic_info":    (15, 240, 590, 1770),
+    "dev_trait":     (1110, 75, 1760, 520),
 }
 
 # --- BASIC INFO HEADER MAPPING ---
-BASIC_INFO_HEADERS = ["NAME", "POSITION", "ARCHETYPE", "STARS", "GEM", "HEIGHT", "WEIGHT", "CLASS", "HOMETOWN"]
+BASIC_INFO_HEADERS = ["NAME", "POSITION", "ARCHETYPE", "STARS", "GEM", "HEIGHT", "WEIGHT", "CLASS", "HOMETOWN", "DEV TRAIT"]
 
 # --- ATTRIBUTE HEADER MAPPING ---
 # Maps messy OCR text to clean Spreadsheet headers

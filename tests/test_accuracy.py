@@ -74,6 +74,7 @@ def run_batch_test(base_folder="screenshots"):
                 attr_count = len(attributes)
                 star_rating = scraper.extract_star_rating(img_bgr)
                 gem_status = scraper.extract_gem_status(img_bgr)
+                dev_trait = scraper.extract_dev_trait(img_bgr)
 
                 # Validation
                 # gem_status always returns a valid string, so it's reported but not a fail condition
@@ -105,12 +106,13 @@ def run_batch_test(base_folder="screenshots"):
                     "attribute_count": attr_count,
                     "captured_stars": star_rating,
                     "captured_gem_status": gem_status,
+                    "captured_dev_trait": dev_trait,
                     "status": "PASS" if is_valid else "FAIL"
                 })
 
                 # Print scannable table row
                 display_path = (rel_path[:37] + '..') if len(rel_path) > 40 else rel_path
-                print(f"{display_path:<40} | {name[:20]:<20} | {attr_count:<6} | ⭐{star_rating} {gem_status:<6} | {status}")
+                print(f"{display_path:<40} | {name[:20]:<20} | {attr_count:<6} | ⭐ {star_rating} | {gem_status:<6} | {status}")
 
     # --- Summary and Export ---
     total = results["pass"] + results["fail"]
