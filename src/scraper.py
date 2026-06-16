@@ -45,9 +45,15 @@ class RecruitScraper:
             # Convert to BGR for OpenCV
             return cv2.cvtColor(np.array(screenshot), cv2.COLOR_BGRA2BGR)
 
-    def _clean_value(self, value: str) -> str: 
+    def _clean_value(self, value: str) -> str:
         d = re.findall(r'\d+', value)
         return d[0] if d else ""
+
+    def _normalize_height(self, height: str) -> str:
+        match = re.search(r"(\d)'[\s]*(\d+)", height)
+        if match:
+            return f"{match.group(1)}'{match.group(2)}\""
+        return height
 
     def _save_recruit_screenshot(self, screenshot, name, position):
         """Saves a screenshot with the recruit's name and timestamp."""
@@ -107,11 +113,17 @@ class RecruitScraper:
         if archetype_data[0] == "Error":
             return "Error"
         elif len(archetype_data) == 2:
-            return archetype_data[1]
+            result = archetype_data[1]
         else:
             # TODO: Find a better solution for the issue where the Gritty Possession Archetype is only being captured as "Possession"
             # Archetype Data: ['ARCHETYPE', 'Possession', 'Gritty']
-            return f"{archetype_data[2]} {archetype_data[1]}"
+            result = f"{archetype_data[2]} {archetype_data[1]}"
+
+        # OCR reads "/" as "W" or "I", turning "East/West" into "EastWWest" or "EastIWest"
+        result = re.sub(r'East(?:/|[WI]+)West', 'East/West', result)
+        # OCR occasionally inserts a stray "." between words (e.g. "Edge . Setter")
+        result = re.sub(r'\s+\.\s+', ' ', result)
+        return result
         
     def extract_recruit_class(self, img) -> str:
         """Extracts recruit's class."""
@@ -130,9 +142,12 @@ class RecruitScraper:
         if hometown_data[0] == "Error" or len(hometown_data) < 2:
             return "Error"
         elif len(hometown_data) == 2:
-            return hometown_data[1]
+            hometown = hometown_data[1]
         else:
-            return f"{hometown_data[1]}, {hometown_data[2]}"
+            hometown = f"{hometown_data[1]}, {hometown_data[2]}"
+
+        # OCR sometimes reads "," as ";"
+        return hometown.replace(";", ",")
 
     def extract_height_weight(self, img) -> tuple[str, str]:
         """Extracts recruit's height and weight."""
@@ -143,11 +158,11 @@ class RecruitScraper:
         elif len(height_weight_data) == 2:
             # Look for Height (e.g., 6' 5")
             height_match = re.search(r"(\d['\s]+\d+[\"']?)", height_weight_data[1])
-            height = height_match.group(1).replace(" ", "") if height_match else ""
+            height = height_match.group(1) if height_match else ""
 
-            # Look for Weight (e.g., 298) 
+            # Look for Weight (e.g., 298)
             # We specifically look for 3 digits that are NOT part of the height
-            weight_match = re.search(r"(\d{3})\s*(?:Ibs|lbs)?", height_weight_data[1])
+            weight_match = re.search(r"(\d{3})\s*(?:[Ii]bs)?", height_weight_data[1])
             weight = weight_match.group(1) if weight_match else ""
         elif len(height_weight_data) == 3:
             height = height_weight_data[1]
@@ -155,7 +170,9 @@ class RecruitScraper:
         else:
             height = height_weight_data[1]
             weight = height_weight_data[3]
-        
+
+        height = self._normalize_height(height)
+        weight = re.sub(r'\s*[Ii]bs\s*', '', weight).strip()
         return height, weight
 
     def extract_attributes(self, img) -> dict[str, str]:
