@@ -18,8 +18,9 @@ from src.output_manager import CSVManager, SheetsManager
 logger = logging.getLogger(__name__)
 
 class RecruitScraper:
-    def __init__(self, save_mode="CSV", use_sounds=True, keep_screenshots=False):
+    def __init__(self, save_mode="CSV", debug_mode=False, use_sounds=True, keep_screenshots=False):
         # 1. Configuration
+        self.debug_mode = debug_mode
         self.use_sounds = use_sounds
         self.keep_screenshots = keep_screenshots
         self.monitor_num = MONITOR_NUMBER
@@ -81,7 +82,7 @@ class RecruitScraper:
 
         if self.debug_mode:
             cv2.imshow(f"Debug: {field_name}", roi)
-            cv2.waitKey(0)  # 1ms delay to allow window to render without blocking
+            cv2.waitKey(0)  # Wait for keypress to close debug window
             cv2.destroyAllWindows()
 
         results = self.reader.readtext(roi, detail=0)
@@ -109,15 +110,28 @@ class RecruitScraper:
     
     def extract_archetype(self, img) -> str:
         """Extracts recruit's archetype."""
-        archetype_data = self.extract_text(img, "archetype")
-        if archetype_data[0] == "Error":
+        y, h, x, w = ROI_CONFIG["archetype"]
+        roi = img[y:y+h, x:x+w]
+
+        if self.debug_mode:
+            cv2.imshow("Debug: archetype", roi)
+            cv2.waitKey(0)  # Wait for keypress to close debug window
+            cv2.destroyAllWindows()
+
+        results = self.reader.readtext(roi, detail=1)
+        if not results:
             return "Error"
-        elif len(archetype_data) == 2:
-            result = archetype_data[1]
-        else:
-            # TODO: Find a better solution for the issue where the Gritty Possession Archetype is only being captured as "Possession"
-            # Archetype Data: ['ARCHETYPE', 'Possession', 'Gritty']
-            result = f"{archetype_data[2]} {archetype_data[1]}"
+
+        # Sort tokens by Y coordinate so multi-line archetypes are always top-to-bottom,
+        # regardless of the order EasyOCR happens to return them.
+        words = sorted(
+            [(bbox[0][1], text) for bbox, text, _ in results if text.upper() != "ARCHETYPE"],
+            key=lambda x: x[0]
+        )
+        if not words:
+            return "Error"
+
+        result = " ".join(text for _, text in words)
 
         # OCR reads "/" as "W" or "I", turning "East/West" into "EastWWest" or "EastIWest"
         result = re.sub(r'East(?:/|[WI]+)West', 'East/West', result)
@@ -177,43 +191,77 @@ class RecruitScraper:
 
     def extract_attributes(self, img) -> dict[str, str]:
         """Extracts attributes and maps them to a dictionary."""
-        attribute_data = self.extract_text(img, "attributes")
+        y, h, x, w = ROI_CONFIG["attributes"]
+        roi = img[y:y+h, x:x+w]
+
+        if self.debug_mode:
+            cv2.imshow("Debug: attributes", roi)
+            cv2.waitKey(0)  # Wait for keypress to close debug window
+            cv2.destroyAllWindows()
+
+        # detail=1 returns (bbox, text, confidence) — we need Y coordinates for spatial pairing
+        attribute_data = self.reader.readtext(roi, detail=1)
 
         # --- 1. CREATE NORMALIZATION MAP ---
-        # This creates a dictionary like: {'SHORTACCURACY': 'SHORT ACCURACY', 'RUNBLOCK': 'RUN BLOCK'}
-        # It allows us to match OCR text even if spaces are missing.
-        header_map = {h.replace(" ", "").upper(): h for h in ATTRIBUTE_HEADERS}   
+        # {'SHORTACCURACY': 'SHORT ACCURACY', 'RUNBLOCK': 'RUN BLOCK', ...}
+        header_map = {h.replace(" ", "").upper(): h for h in ATTRIBUTE_HEADERS}
+        _IGNORED_LABELS = {"ATTRIBUTES"}
 
-        # --- 2. PROCESS LABELS & VALUES ---
-        clean_labels = []
-        clean_values = []
+        # --- 2. PROCESS LABELS & VALUES, TRACKING Y POSITION ---
+        label_items = []  # (y, clean_label)
+        value_items = []  # (y, clean_value)
 
-        for item in attribute_data:
-            # Check if it's a Value (contains digits)
+        for bbox, item, _ in attribute_data:
+            item_y = bbox[0][1]  # top-left Y of bounding box
+
             if all(c.isdigit() for c in item):
                 val = self._clean_value(item)
-                if len(val) == 2: # filter out noise, keep 2-digit stats
-                    clean_values.append(val)
+                if len(val) == 2:  # keep only 2-digit stats, filter noise
+                    value_items.append((item_y, val))
             else:
-                # Item is a Label
-                # STRIP SPACES from the OCR result to match our map keys
                 ocr_key = item.replace(" ", "").upper()
-                
-                # If the stripped OCR text matches one of our known headers, use the CLEAN header
                 if ocr_key in header_map:
-                    clean_labels.append(header_map[ocr_key])
-                else:
-                    # If it's a label we don't recognize (garbage text), ignore it
-                    # or append it raw if you want to see errors
-                    print(f"Unrecognized attribute label: {item}")
-                    pass
+                    label_items.append((item_y, header_map[ocr_key]))
+                elif ocr_key not in _IGNORED_LABELS:
+                    logger.debug(f"Unrecognized attribute label: {item}")
 
-        # --- 3. ZIP AND RETURN ---
-        # We assume the lists are aligned (Label -> Value order)
-        # If the OCR misses a label but sees a value, alignment might drift. 
-        # For now, zip is the standard approach.
-        logger.info(f"Extracted Attributes: {dict(zip(clean_labels, clean_values))}")
-        return dict(zip(clean_labels, clean_values))
+        # --- 3. SORT BOTH BY Y, THEN ZIP ---
+        # Sorting independently means a missed label only drops that one attribute
+        # rather than corrupting all subsequent pairings.
+        label_items.sort(key=lambda x: x[0])
+        value_items.sort(key=lambda x: x[0])
+
+        result = dict(zip(
+            [label for _, label in label_items],
+            [val for _, val in value_items]
+        ))
+        logger.info(f"Extracted Attributes: {result}")
+        return result
+
+    def extract_star_rating(self, img) -> int:
+        """Extracts the recruit's star rating (1–5)."""
+        y, h, x, w = ROI_CONFIG["star_rating"]
+        star_roi = img[y:y+h, x:x+w]
+        return processor.get_star_rating(star_roi, debug_mode=self.debug_mode)
+
+    def extract_gem_status(self, img) -> str:
+        """Returns 'GEM', 'BUST', or 'NORMAL' based on the recruit icon color."""
+        y, h, x, w = ROI_CONFIG["gem_icon"]
+        gem_roi = img[y:y+h, x:x+w]
+        return processor.detect_gem_status(gem_roi, debug_mode=self.debug_mode)
+
+    _DEV_TRAIT_MAP = {"normal": "Normal", "impact": "Impact", "star": "Star", "elite": "Elite"}
+
+    def extract_dev_trait(self, img) -> str:
+        """Returns the Development Trait if scouted, or '' if the ? placeholder is shown."""
+        dev_trait_data = self.extract_text(img, "dev_trait")
+        if dev_trait_data[0] == "Error":
+            return ""
+        for token in dev_trait_data:
+            trait = self._DEV_TRAIT_MAP.get(token.lower())
+            if trait:
+                return trait
+        return ""
 
     def process_current_recruit(self):
         """The main execution logic for a single 'S' key press."""
@@ -229,20 +277,16 @@ class RecruitScraper:
         attributes = self.extract_attributes(img)
         
         # 2. Extract Specialized Data via Processor
-        y, h, x, w = ROI_CONFIG["star_rating"]
-        star_roi = img[y:y+h, x:x+w]
-        star_rating = processor.get_star_rating(star_roi, debug_mode=self.debug_mode)
-        
-        y, h, x, w = ROI_CONFIG["gem_icon"]
-        gem_roi = img[y:y+h, x:x+w]
-        gem_status = processor.detect_gem_status(gem_roi, debug_mode=self.debug_mode)
+        star_rating = self.extract_star_rating(img)
+        gem_status = self.extract_gem_status(img)
+        dev_trait = self.extract_dev_trait(img)
 
         # 3. Create Model
         recruit = Recruit(
-                name=name, position=position, archetype=archetype, 
-                star_rating=star_rating, gem_status=gem_status, 
-                height=height, weight=weight, recruit_class=recruit_class, 
-                hometown=hometown, attributes=attributes
+                name=name, position=position, archetype=archetype,
+                star_rating=star_rating, gem_status=gem_status,
+                height=height, weight=weight, recruit_class=recruit_class,
+                hometown=hometown, attributes=attributes, dev_trait=dev_trait
             )
 
         # 4. Validation & Save

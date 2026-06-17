@@ -29,11 +29,12 @@ ROI_CONFIG = {
     "position":      (15, 120, 1400, 200),
     "name":          (15, 160, 590, 805),
     "star_rating":   (175, 50, 615, 240),
-    "basic_info":    (15, 240, 590, 1770)
+    "basic_info":    (15, 240, 590, 1770),
+    "dev_trait":     (1120, 100, 1970, 340),
 }
 
 # --- BASIC INFO HEADER MAPPING ---
-BASIC_INFO_HEADERS = ["NAME", "POSITION", "ARCHETYPE", "STARS", "GEM", "HEIGHT", "WEIGHT", "CLASS", "HOMETOWN"]
+BASIC_INFO_HEADERS = ["NAME", "POSITION", "ARCHETYPE", "STARS", "GEM", "HEIGHT", "WEIGHT", "CLASS", "HOMETOWN", "DEV TRAIT"]
 
 # --- ATTRIBUTE HEADER MAPPING ---
 # Maps messy OCR text to clean Spreadsheet headers
@@ -50,6 +51,20 @@ ATTRIBUTE_HEADERS = [
     "ZONE COVERAGE", "PRESS", "KICK RETURN", "KICK POWER", "KICK ACCURACY", "STAMINA", "TOUGHNESS", 
     "INJURY", "LONG SNAPPER"
 ]
+
+# --- Per-Position Expected Attribute Count ---
+# All positions currently show 10 attributes on the recruit card.
+# Update this map if a position is discovered to show a different number.
+POSITION_ATTRIBUTE_COUNT = {
+    "QB": 10, "HB": 10, "FB": 10, "WR": 10, "TE": 10,
+    "OT": 10, "OG": 10, "C": 10, "DT": 10, "DE": 10,
+    "OLB": 10, "MLB": 10, "CB": 10, "SS": 10, "FS": 10,
+    "K": 10, "P": 10, "ATH": 10,
+}
+
+# --- Star Template Matching ---
+STAR_TEMPLATE_PATH = "assets/star_template.png"
+STAR_MATCH_THRESHOLD = 0.70  # Confidence threshold for cv2.matchTemplate (TM_CCOEFF_NORMED)
 
 # --- File Paths & API ---
 GOOGLE_SHEET_NAME = "CFB26_Recruits"
