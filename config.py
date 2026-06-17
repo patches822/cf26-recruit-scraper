@@ -30,7 +30,7 @@ ROI_CONFIG = {
     "name":          (15, 160, 590, 805),
     "star_rating":   (175, 50, 615, 240),
     "basic_info":    (15, 240, 590, 1770),
-    "dev_trait":     (1110, 75, 1760, 520),
+    "dev_trait":     (1120, 100, 1970, 340),
 }
 
 # --- BASIC INFO HEADER MAPPING ---

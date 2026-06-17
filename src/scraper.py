@@ -205,6 +205,7 @@ class RecruitScraper:
         # --- 1. CREATE NORMALIZATION MAP ---
         # {'SHORTACCURACY': 'SHORT ACCURACY', 'RUNBLOCK': 'RUN BLOCK', ...}
         header_map = {h.replace(" ", "").upper(): h for h in ATTRIBUTE_HEADERS}
+        _IGNORED_LABELS = {"ATTRIBUTES"}
 
         # --- 2. PROCESS LABELS & VALUES, TRACKING Y POSITION ---
         label_items = []  # (y, clean_label)
@@ -221,8 +222,8 @@ class RecruitScraper:
                 ocr_key = item.replace(" ", "").upper()
                 if ocr_key in header_map:
                     label_items.append((item_y, header_map[ocr_key]))
-                else:
-                    print(f"Unrecognized attribute label: {item}")
+                elif ocr_key not in _IGNORED_LABELS:
+                    logger.debug(f"Unrecognized attribute label: {item}")
 
         # --- 3. SORT BOTH BY Y, THEN ZIP ---
         # Sorting independently means a missed label only drops that one attribute
