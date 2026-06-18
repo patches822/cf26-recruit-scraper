@@ -149,3 +149,15 @@ reader = easyocr.Reader(['en'], gpu=False)
 * **Automated Testing:** Implement a test suite using `pytest` to run the OCR and color detection logic against a library of "Golden Images" (known screenshots) to ensure code updates don't break detection accuracy.
 * **Advanced Error Handling:** Add comprehensive try-except blocks for network timeouts, API rate limits, and OCR "hallucinations" to ensure the script doesn't crash during a long scouting session.
 * **Validation Logging:** Create a `failsafe.log` that saves the raw OCR text of any failed scan for manual review later.
+
+## 📄 License
+
+Copyright (C) 2026 Tyler Patchoski
+
+This program is free software: you can redistribute it and/or modify it under the terms of the **GNU General Public License v3.0** (or, at your option, any later version) as published by the Free Software Foundation. See the [LICENSE](LICENSE) file for the full text.
+
+This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+## ⚖️ Disclaimer
+
+This project is not affiliated with, endorsed by, or sponsored by Electronic Arts Inc. "College Football" and related marks are trademarks of Electronic Arts. This tool only reads pixels from your own screen — it does not modify the game or access game memory.
